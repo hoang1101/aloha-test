@@ -1,45 +1,60 @@
-const db = require('./models')
+// src/server.js
+import express from 'express';
+import db from './models';
+import swaggerJSDoc from 'swagger-jsdoc'
+import swaggerUI from 'swagger-ui-express'
+const swaggerFile = require('../swagger_output.json')
 
-import express from 'express'
-
-require('dotenv').config()
 
 
-const app = express()
+require('dotenv').config();
 
-app.use('/testserver', (req, res, next) => {
-  res.status(200).json({
-    status: 'success',
-    msg: 'HELLO'
-  })
-})
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Thiết lập Swagger
+const swaggerOptions = {
+  swaggerDefinition: {
+    info: {
+      title: 'Blog API',
+      version: 'v1'
+    }
+  },
+  apis: ['./routes/v1/*.js']
+}
+// eslint-disable-next-line no-console, no-unused-vars
+const swaggerDocs = swaggerJSDoc(swaggerOptions)
+app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerFile))
+
+
 const initRouter = require('./routes/v1')
 initRouter(app)
+// Endpoint kiểm tra
+app.use('/testserver', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    msg: 'HELLO',
+  });
+});
 
+
+// Kết nối cơ sở dữ liệu
 db.sequelize
   .authenticate()
   .then(() => {
-    // eslint-disable-next-line no-console
-    console.log('Connected to SQL database:', process.env.DB_NAME)
-    // return db.sequelize.sync({ force: true }); // { alter: true }
+    console.log('Connected to SQL database:', process.env.DB_NAME);
   })
   .catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error('Unable to connect to SQL database:', err, process.env.DB_NAME)
-  })
+    console.error('Unable to connect to SQL database:', err);
+  });
 
-
+// Đồng bộ hóa cơ sở dữ liệu và khởi động server
 db.sequelize.sync()
   .then(() => {
-    app.listen(process.env.PORT, () => {
-      // eslint-disable-next-line no-console
-      console.error('Created table in MYSQL:', process.env.DB_NAME)
-      // eslint-disable-next-line no-console
-      console.log(`Hello Broo, Wellcome connected at server http://localhost:${process.env.PORT}`)
-    })
+    app.listen(PORT, () => {
+      console.log(`Server is running at http://localhost:${PORT}`);
+    });
   })
   .catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error('Unable to connect to SQL database:', err, process.env.DB_NAME)
-  })
-
+    console.error('Unable to connect to SQL database:', err);
+  });
